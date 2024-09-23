@@ -44,7 +44,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
         TooOld,
     }
     /// <summary>This control is use to insert a date just by keyboard</summary>
-    internal class DateMaskedTextBox : MaskedTextBox
+    public class DateMaskedTextBox : MaskedTextBox
     {
         #region Constants
         /// <summary>This MUSK PRETEND Italian FORMAT! that is dd/MM/yyyy </summary>
@@ -88,7 +88,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public DateMasked_Style Style { get; private set; }
         /// <summary>If a valid date is inserted will return the DateTime format of what's inserted</summary>
-        public DateTime InsertedDate
+        public DateTime ValueAsDateTime
         {
             get
             {
@@ -96,9 +96,28 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                     return lastDecodedValue;
                 else
                     return DateTime.MinValue;
-
+            }
+            set
+            {
+                //When i set a ZERO value make it empty
+                if (value.Ticks == 0L)
+                {
+                    this.Clear();
+                    return;
+                }
+                Text = Style switch
+                {
+                    DateMasked_Style.USA => value.ToString("MM/dd/yyyy"),
+                    DateMasked_Style.Asian => value.ToString("yyyy/MM/dd"),
+                    _ => value.ToString("dd/MM/yyyy"),
+                };
+                lastDecodedValue = value;
+                //Now call the validator
+                VerifyContrainsOnDate();
             }
         }
+
+        
         /// <summary>How many year must have been passed to be a valid date</summary>
         /// <remarks>Used when is a birthday and you need to set a certain age</remarks>
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
@@ -132,12 +151,12 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                     _maxAgeDate = DateTime.MinValue;
             }
         }
-        /// <summary>If true and date are before today will return an Error</summary>
+        /// <summary>If false and date are after today will return an Error</summary>
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-        public bool NoFutureDates { get; set; }
+        public bool AllowFutureDate { get; set; }
         /// <summary>If true will report an InvalidDate on an empty string</summary>
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-        public bool EmptyDateIsValid { get; set; }
+        public bool AllowEmptyDate { get; set; }
         #endregion
         #region Init
         public DateMaskedTextBox()
@@ -167,19 +186,35 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
             MinimumAge = MinimumAge_Default;
             MaxAge = MaxAge_Default;
             KeyPress += on_KeyPress;
-            Leave += on_Leave;
+            //When i press a back and delete button i will reset the status
+            KeyDown += (s, e) => 
+            { 
+                if ((e.KeyCode == Keys.Delete || e.KeyCode == Keys.Back) && Status != DateMasked_Status.Unknown_StillToBeValidated)
+                {
+                    Status = DateMasked_Status.Unknown_StillToBeValidated;
+                    BackColor = Control.DefaultBackColor;
+                    StatusChanged?.Invoke(this, Status);
+                }
+            };
+            Leave += on_Leave_ValidateTheDate;
         }
         #endregion
         #region Events
         private void on_KeyPress(object sender, KeyPressEventArgs e)
         {
             //What ever i write will clean all precious calculated values
-            if (Status != DateMasked_Status.Unknown_StillToBeValidated)
+            if (Status != DateMasked_Status.Unknown_StillToBeValidated | e.KeyChar == (char)Keys.Back)
+            {
                 Status = DateMasked_Status.Unknown_StillToBeValidated;
+                BackColor = Control.DefaultBackColor;
+                StatusChanged?.Invoke(this, Status);
+            }
+                
             //I want to intercept ONLY the separator character
             //separator are: \ / . -
             if (e.KeyChar != '\\' && e.KeyChar != '/' && e.KeyChar != '.' && e.KeyChar != '-')
                 return;
+            
             //Mask is always 00/00/0000
             //And accept an input as 00/00/00
             //use switch statement to handle different cases
@@ -217,7 +252,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
             }
         }
 
-        private void on_Leave(object sender, EventArgs e)
+        private void on_Leave_ValidateTheDate(object sender, EventArgs e)
         {
             //If somehow i'm too long do not validate
             if (Text.Length <= mask_completed_lenght)
@@ -225,7 +260,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                 //If i'm empty i will return an error if EmptyDateIsValid is false
                 if (Text == emptyText)
                 {
-                    if (EmptyDateIsValid)
+                    if (AllowEmptyDate)
                     {
                         Status = DateMasked_Status.Valid_Empty;
                         BackColor = Control.DefaultBackColor;
@@ -316,20 +351,28 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                     }
                 }
             }
-            if (DateTime.TryParse(Text, out DateTime lastDecodedValue) == false)
+            if (DateTime.TryParse(Text, out lastDecodedValue) == false)
             {
                 StatusChanged?.Invoke(this, DateMasked_Status.InvalidDate);
                 Status = DateMasked_Status.InvalidDate;
                 BackColor = ErrorColor;
                 return;
             }
+            VerifyContrainsOnDate();
+        }
+
+        /// <summary>Verify if the internal Date respect the limit of minimum/max age and future date</summary>
+        /// <returns></returns>
+        /// <remarks>Created to be used when you set a date from outside</remarks>
+        private bool VerifyContrainsOnDate()
+        {
             //calculate how many years of difference from DateTime.Now and outDate
-            if (NoFutureDates && lastDecodedValue > DateTime.Now)
+            if (AllowFutureDate == false && lastDecodedValue > DateTime.Now)
             {
                 StatusChanged?.Invoke(this, DateMasked_Status.FutureDate);
                 Status = DateMasked_Status.FutureDate;
                 BackColor = ErrorColor;
-                return;
+                return false;
             }
             //The minimumAgeDate is the date that is the minimum date acceptable
             if (_minimumAge > 1 && lastDecodedValue > _minimunAgeDate)
@@ -337,7 +380,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                 StatusChanged?.Invoke(this, DateMasked_Status.UnderAge);
                 Status = DateMasked_Status.UnderAge;
                 BackColor = ErrorColor;
-                return;
+                return false;
             }
             //The maxAgeDate is the oldest date that is acceptable
             if (lastDecodedValue < _maxAgeDate)
@@ -345,11 +388,21 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                 StatusChanged?.Invoke(this, DateMasked_Status.TooOld);
                 Status = DateMasked_Status.TooOld;
                 BackColor = ErrorColor;
-                return;
+                return false;
             }
             BackColor = OkColor;
             StatusChanged?.Invoke(this, DateMasked_Status.Valid);
             Status = DateMasked_Status.Valid;
+            return true;
+        }
+        #endregion
+        #region Simple GUI
+        //intercept the Clear method
+        public void Clear()
+        {
+            Text = emptyText;
+            Status = DateMasked_Status.Unknown_StillToBeValidated;
+            BackColor = Control.DefaultBackColor;
         }
         #endregion
     }
