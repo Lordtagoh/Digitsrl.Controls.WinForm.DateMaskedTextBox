@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<Copyright>2024 Digitsrl</Copyright>
+	<Authors>DigitSrl</Authors>
+	<Company>DigitSrl</Company>
+	<Description>Small Date control that is fast to use while typing</Description>
+	<Version>1.0.0</Version>
+  </PropertyGroup>
+
+</Project>
