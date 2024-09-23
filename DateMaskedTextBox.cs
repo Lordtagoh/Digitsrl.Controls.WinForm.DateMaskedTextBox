@@ -20,17 +20,27 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
         Valid = 1,
         /// <summary>A valid empty date is present</summary>
         Valid_Empty,
+        /// <summary>The part of the day in the date is missing</summary>
         Incomplete_MissingDay,
+        /// <summary>The part of the month in the date is missing</summary>
         Incomplete_MissingMonth,
+        /// <summary>The part of the year in the date is missing</summary>
         Incomplete_MissingYear,
+        /// <summary>The date is invalid</summary>
         InvalidDate,
         /// <summary>An empty value is present and i expect one</summary>
         Invalid_Empty,
+        /// <summary>The day is invalid, it's over 31</summary>
         Invalid_Day,
+        /// <summary>The month is invalid, it's over 12</summary>
         Invalid_Month,
+        /// <summary>The year is invalid</summary>
         Invalid_Year,
+        /// <summary>The date is valid but is in the future</summary>
         FutureDate,
+        /// <summary>The date is valid but the person is under the minimum age</summary>
         UnderAge,
+        /// <summary>The date is valid but the person is too old</summary>
         TooOld,
     }
     /// <summary>This control is use to insert a date just by keyboard</summary>
@@ -321,7 +331,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                 BackColor = ErrorColor;
                 return;
             }
-
+            //The minimumAgeDate is the date that is the minimum date acceptable
             if (_minimumAge > 1 && lastDecodedValue > _minimunAgeDate)
             {
                 StatusChanged?.Invoke(this, DateMasked_Status.UnderAge);
@@ -329,6 +339,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                 BackColor = ErrorColor;
                 return;
             }
+            //The maxAgeDate is the oldest date that is acceptable
             if (lastDecodedValue < _maxAgeDate)
             {
                 StatusChanged?.Invoke(this, DateMasked_Status.TooOld);
