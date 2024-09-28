@@ -192,7 +192,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                 if ((e.KeyCode == Keys.Delete || e.KeyCode == Keys.Back) && Status != DateMasked_Status.Unknown_StillToBeValidated)
                 {
                     Status = DateMasked_Status.Unknown_StillToBeValidated;
-                    BackColor = Control.DefaultBackColor;
+                    BackColor = Color.Empty;
                     StatusChanged?.Invoke(this, Status);
                 }
             };
@@ -206,7 +206,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
             if (Status != DateMasked_Status.Unknown_StillToBeValidated | e.KeyChar == (char)Keys.Back)
             {
                 Status = DateMasked_Status.Unknown_StillToBeValidated;
-                BackColor = Control.DefaultBackColor;
+                BackColor = Color.Empty;
                 StatusChanged?.Invoke(this, Status);
             }
                 
@@ -263,7 +263,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                     if (AllowEmptyDate)
                     {
                         Status = DateMasked_Status.Valid_Empty;
-                        BackColor = Control.DefaultBackColor;
+                        BackColor = Color.Empty;
                     }
                     else
                     {
@@ -402,7 +402,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
         {
             Text = emptyText;
             Status = DateMasked_Status.Unknown_StillToBeValidated;
-            BackColor = Control.DefaultBackColor;
+            BackColor = Color.Empty;
         }
         #endregion
     }
