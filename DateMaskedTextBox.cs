@@ -12,10 +12,10 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
     public enum DateMasked_Style { European, USA, Asian }
     public enum DateMasked_Status
     {
+        /// <summary>With this value the date component is still not calculated</summary>
+        Unknown_StillToBeValidated = -1,
         /// <summary>This value is set at init</summary>
         Default = 0,
-        /// <summary>With this value the date component is still not calculated</summary>
-        Unknown_StillToBeValidated,
         /// <summary>A valid date is present</summary>
         Valid = 1,
         /// <summary>A valid empty date is present</summary>
@@ -82,7 +82,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
         #region Proprieties
         /// <summary>The status of this TextBox, if it contain a valid date</summary>
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public DateMasked_Status Status { get; private set; }
+        public DateMasked_Status Status { get; set; }
         /// <summary>The style of the date, if it's European, USA or Asian</summary>
         /// <remarks>Is set at runtime in the Constructor</remarks>
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -92,6 +92,12 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
         {
             get
             {
+                if (Status == DateMasked_Status.Unknown_StillToBeValidated)
+                {
+                    if (VerifyContrainsOnDate() == DateMasked_Status.Valid)
+                        return lastDecodedValue;
+                }
+
                 if (Status != DateMasked_Status.Unknown_StillToBeValidated)
                     return lastDecodedValue;
                 else
@@ -364,7 +370,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
         /// <summary>Verify if the internal Date respect the limit of minimum/max age and future date</summary>
         /// <returns></returns>
         /// <remarks>Created to be used when you set a date from outside</remarks>
-        private bool VerifyContrainsOnDate()
+        private DateMasked_Status VerifyContrainsOnDate()
         {
             //calculate how many years of difference from DateTime.Now and outDate
             if (AllowFutureDate == false && lastDecodedValue > DateTime.Now)
@@ -372,7 +378,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                 StatusChanged?.Invoke(this, DateMasked_Status.FutureDate);
                 Status = DateMasked_Status.FutureDate;
                 BackColor = ErrorColor;
-                return false;
+                return DateMasked_Status.FutureDate;
             }
             //The minimumAgeDate is the date that is the minimum date acceptable
             if (_minimumAge > 1 && lastDecodedValue > _minimunAgeDate)
@@ -380,7 +386,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                 StatusChanged?.Invoke(this, DateMasked_Status.UnderAge);
                 Status = DateMasked_Status.UnderAge;
                 BackColor = ErrorColor;
-                return false;
+                return DateMasked_Status.UnderAge;
             }
             //The maxAgeDate is the oldest date that is acceptable
             if (lastDecodedValue < _maxAgeDate)
@@ -388,12 +394,12 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
                 StatusChanged?.Invoke(this, DateMasked_Status.TooOld);
                 Status = DateMasked_Status.TooOld;
                 BackColor = ErrorColor;
-                return false;
+                return DateMasked_Status.TooOld;
             }
             BackColor = OkColor;
             StatusChanged?.Invoke(this, DateMasked_Status.Valid);
             Status = DateMasked_Status.Valid;
-            return true;
+            return DateMasked_Status.Valid;
         }
         #endregion
         #region Simple GUI
@@ -403,6 +409,60 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
             Text = emptyText;
             Status = DateMasked_Status.Unknown_StillToBeValidated;
             BackColor = Color.Empty;
+        }
+        #endregion
+        #region Validate 
+        public bool ValidateDocumentDate(bool showErrorOnFail, string description)
+        {
+            var verifiedStatus = Status;
+            if (verifiedStatus == DateMasked_Status.Unknown_StillToBeValidated)
+            {
+                verifiedStatus = VerifyContrainsOnDate();
+            }
+            if (verifiedStatus == DateMasked_Status.Valid | verifiedStatus == DateMasked_Status.Valid_Empty)
+                return true;
+
+            if (showErrorOnFail)
+            {
+                switch (verifiedStatus)
+                {
+                    case DateMasked_Status.Default:
+                    case DateMasked_Status.Unknown_StillToBeValidated:
+                    case DateMasked_Status.Valid_Empty:
+                    case DateMasked_Status.Invalid_Empty:
+                        MessageBox.Show($"Inserire la {description}", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    case DateMasked_Status.Invalid_Day:
+                    case DateMasked_Status.Incomplete_MissingDay:
+                        MessageBox.Show($"{description} Errata GIORNO", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    case DateMasked_Status.Invalid_Month:
+                    case DateMasked_Status.Incomplete_MissingMonth:
+                        MessageBox.Show($"{description} Errata MESE", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    case DateMasked_Status.Invalid_Year:
+                    case DateMasked_Status.Incomplete_MissingYear:
+                        MessageBox.Show($"{description} Errata ANNO", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    case DateMasked_Status.InvalidDate:
+                        MessageBox.Show($"{description} Errata", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    case DateMasked_Status.FutureDate:
+                        MessageBox.Show($"{description} NEL FUTURO", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    case DateMasked_Status.UnderAge:
+                        MessageBox.Show($"{description} TROPPO NUOVA", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    case DateMasked_Status.TooOld:
+                        MessageBox.Show($"{description} TROPPO VECCHIA", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    default:
+                        MessageBox.Show($"Inserire {description}", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                }
+            }
+            Focus();
+            return false;
         }
         #endregion
     }
