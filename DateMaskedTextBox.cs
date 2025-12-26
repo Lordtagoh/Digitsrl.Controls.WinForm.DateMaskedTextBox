@@ -88,6 +88,7 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public DateMasked_Style Style { get; private set; }
         /// <summary>If a valid date is inserted will return the DateTime format of what's inserted</summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public DateTime ValueAsDateTime
         {
             get
