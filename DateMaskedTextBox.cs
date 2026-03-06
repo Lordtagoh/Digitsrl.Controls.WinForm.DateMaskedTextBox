@@ -373,6 +373,10 @@ namespace Digitsrl.Controls.WinForm.DateMaskedTextBox
         /// <remarks>Created to be used when you set a date from outside</remarks>
         private DateMasked_Status VerifyContrainsOnDate()
         {
+            ////If i was never decoded please try it now
+            //if (Status == DateMasked_Status.Unknown_StillToBeValidated && lastDecodedValue == DateTime.MinValue)
+            //{
+            //}
             //calculate how many years of difference from DateTime.Now and outDate
             if (AllowFutureDate == false && lastDecodedValue > DateTime.Now)
             {
